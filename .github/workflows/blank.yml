@@ -1,0 +1,135 @@
+import os
+import zipfile
+
+# Carpeta base temporal
+base_dir = "/mnt/data/Lab_Dental_App_PyQt5"
+os.makedirs(base_dir, exist_ok=True)
+
+# main.py (aplicación básica con PyQt5)
+main_py = """import sys
+from PyQt5.QtWidgets import QApplication, QMainWindow, QTableWidget, QTableWidgetItem, QAction, QVBoxLayout, QWidget
+from PyQt5.QtGui import QColor
+
+class MainWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Laboratorio Dental")
+        self.setGeometry(100, 100, 700, 400)
+
+        # Tabla principal
+        self.table = QTableWidget(5, 3)
+        self.table.setHorizontalHeaderLabels(["Doctor", "Trabajo", "Fecha Entrega"])
+
+        # Datos de ejemplo
+        data = [
+            ("Dr. Pérez", "Corona", "2025-08-25"),
+            ("Dr. García", "Prótesis", "2025-08-23"),
+            ("Dr. López", "Implante", "2025-08-30"),
+            ("Dr. Ramírez", "Incrustación", "2025-08-22"),
+            ("Dr. Torres", "Carilla", "2025-08-28")
+        ]
+
+        for row, (doctor, trabajo, fecha) in enumerate(data):
+            doctor_item = QTableWidgetItem(doctor)
+            doctor_item.setForeground(QColor("blue"))
+            self.table.setItem(row, 0, doctor_item)
+            self.table.setItem(row, 1, QTableWidgetItem(trabajo))
+            self.table.setItem(row, 2, QTableWidgetItem(fecha))
+
+        # Menú archivo -> configuración (ejemplo vacío)
+        menu = self.menuBar().addMenu("Archivo")
+        config_action = QAction("Configuración", self)
+        menu.addAction(config_action)
+
+        # Layout
+        layout = QVBoxLayout()
+        layout.addWidget(self.table)
+        container = QWidget()
+        container.setLayout(layout)
+        self.setCentralWidget(container)
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    window = MainWindow()
+    window.show()
+    sys.exit(app.exec_())
+"""
+
+# requirements.txt
+requirements_txt = """PyQt5==5.15.9
+"""
+
+# README.md
+readme_md = """# Laboratorio Dental - PyQt5
+
+Este proyecto es una aplicación de escritorio para un laboratorio dental.
+
+## 🚀 Cómo usar este proyecto en GitHub Actions
+
+1. Crea un repositorio en GitHub.
+2. Sube todos los archivos de este proyecto.
+3. Ve a la pestaña **Actions** en GitHub y habilita los workflows.
+4. Ejecuta el workflow llamado **Build Windows EXE**.
+5. Al terminar, descarga el archivo `.exe` desde **Artifacts**.
+
+El ejecutable `LabDental.exe` será portable, no requiere instalar Python.
+"""
+
+# build.yml para GitHub Actions
+workflow_dir = os.path.join(base_dir, ".github", "workflows")
+os.makedirs(workflow_dir, exist_ok=True)
+build_yml = """name: Build Windows EXE
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.10"
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pyinstaller
+
+    - name: Build exe
+      run: |
+        pyinstaller --noconsole --onefile main.py --name LabDental
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: LabDental-exe
+        path: dist/LabDental.exe
+"""
+
+# Guardar archivos
+with open(os.path.join(base_dir, "main.py"), "w") as f:
+    f.write(main_py)
+with open(os.path.join(base_dir, "requirements.txt"), "w") as f:
+    f.write(requirements_txt)
+with open(os.path.join(base_dir, "README.md"), "w") as f:
+    f.write(readme_md)
+with open(os.path.join(workflow_dir, "build.yml"), "w") as f:
+    f.write(build_yml)
+
+# Crear ZIP
+zip_path = "/mnt/data/Lab_Dental_App_PyQt5.zip"
+with zipfile.ZipFile(zip_path, "w") as zipf:
+    for root, dirs, files in os.walk(base_dir):
+        for file in files:
+            file_path = os.path.join(root, file)
+            arcname = os.path.relpath(file_path, base_dir)
+            zipf.write(file_path, arcname)
+
+zip_path
